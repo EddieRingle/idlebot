@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="51">
+  <logicalFolder name="root" displayName="root" projectFiles="true">
+    <logicalFolder name="HeaderFiles"
+                   displayName="Header Files"
+                   projectFiles="true">
+      <itemPath>bot.h</itemPath>
+      <itemPath>irc.h</itemPath>
+      <itemPath>universal_include.h</itemPath>
+    </logicalFolder>
+    <logicalFolder name="ResourceFiles"
+                   displayName="Resource Files"
+                   projectFiles="true">
+    </logicalFolder>
+    <logicalFolder name="SourceFiles"
+                   displayName="Source Files"
+                   projectFiles="true">
+      <itemPath>bot.cpp</itemPath>
+      <itemPath>idlebot.cpp</itemPath>
+      <itemPath>irc.cpp</itemPath>
+    </logicalFolder>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false">
+      <itemPath>Makefile</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Debug" type="1">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <compilerSet>GNU|GNU</compilerSet>
+        <platform>2</platform>
+      </toolsSet>
+      <compileType>
+        <cCompilerTool>
+          <warningLevel>3</warningLevel>
+        </cCompilerTool>
+        <ccCompilerTool>
+          <warningLevel>2</warningLevel>
+        </ccCompilerTool>
+        <linkerTool>
+          <linkerLibItems>
+            <linkerLibLibItem>CrissCross</linkerLibLibItem>
+            <linkerLibLibItem>pthread</linkerLibLibItem>
+          </linkerLibItems>
+        </linkerTool>
+      </compileType>
+      <item path="bot.cpp">
+        <itemTool>1</itemTool>
+      </item>
+      <item path="bot.h">
+        <itemTool>3</itemTool>
+      </item>
+      <item path="idlebot.cpp">
+        <itemTool>1</itemTool>
+      </item>
+      <item path="irc.cpp">
+        <itemTool>1</itemTool>
+      </item>
+      <item path="irc.h">
+        <itemTool>3</itemTool>
+      </item>
+      <item path="universal_include.h">
+        <itemTool>3</itemTool>
+      </item>
+    </conf>
+    <conf name="Release" type="1">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <compilerSet>GNU|GNU</compilerSet>
+        <platform>2</platform>
+      </toolsSet>
+      <compileType>
+        <cCompilerTool>
+          <developmentMode>5</developmentMode>
+        </cCompilerTool>
+        <ccCompilerTool>
+          <developmentMode>5</developmentMode>
+        </ccCompilerTool>
+        <fortranCompilerTool>
+          <developmentMode>5</developmentMode>
+        </fortranCompilerTool>
+        <linkerTool>
+          <linkerLibItems>
+          </linkerLibItems>
+        </linkerTool>
+      </compileType>
+      <item path="bot.cpp">
+        <itemTool>1</itemTool>
+      </item>
+      <item path="bot.h">
+        <itemTool>3</itemTool>
+      </item>
+      <item path="idlebot.cpp">
+        <itemTool>1</itemTool>
+      </item>
+      <item path="irc.cpp">
+        <itemTool>1</itemTool>
+      </item>
+      <item path="irc.h">
+        <itemTool>3</itemTool>
+      </item>
+      <item path="universal_include.h">
+        <itemTool>3</itemTool>
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>
