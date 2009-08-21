@@ -8,7 +8,7 @@
 
 IRC::IRC()
 {
-	this->recv_buf = "not null";
+	this->recv_buf = new char[4096];
 	this->timeout = 200;
 	this->conn = new TCPSocket();
 }
@@ -17,6 +17,8 @@ IRC::~IRC()
 {
 	delete this->conn;
 	*this->conn = NULL;
+	delete this->recv_buf;
+	*this->recv_buf = NULL;
 }
 
 int IRC::connect(string server,string nicks[3],u_short port,string password)
@@ -30,7 +32,7 @@ int IRC::connect(string server,string nicks[3],u_short port,string password)
 	int i = 0;
 	this->nick(nicks[i]);
 	this->my_nick = nicks[i];
-	this->user(nicks[i]+"~idlebot","0",this->my_server);
+	this->user(nicks[i]+"-idlebot","localhost",this->my_server);
 	ccerr = this->receive();
 	if (ccerr != 0)
 		return ccerr;
@@ -71,9 +73,9 @@ int IRC::connect(string server,string nicks[3],u_short port,string password)
 char** IRC::split(char *str,char *delim)
 {
 	int i = 0;
-	char **results;
+	char **results = new char*[50];
 	char *tmp = strtok(str,delim);
-	while (tmp != NULL) {
+	while (tmp != NULL && i <= 50) {
 		results[i] = tmp;
 		strtok(NULL,delim);
 		i++;
@@ -83,28 +85,31 @@ char** IRC::split(char *str,char *delim)
 
 int IRC::receive()
 {
-	u_int len = 4092;
-	char *buffer;
+	u_int len = 4096;
+	char *buffer = new char[4096];
 	ccerr = conn->Read(buffer,&len);
+	cout << buffer << endl;
 	if (ccerr != 0) {
 		return ccerr;
 	}
-	if (this->recv_buf != "") {
-		this->last_recv = this->recv_buf;
-	} else {
-		cout << "no data recved." << endl;
-	}
 
+	stringstream *s = new stringstream;
+	*s << this->recv_buf;
+	this->last_recv = s->str();
+	delete s;
+	this->recv_buf = buffer;
+
+	delete [] buffer;
 	return 0;
 }
 
 int IRC::send(string message)
 {
 	this->last_msg = message;
+	console->WriteLine(this->last_msg);
 	ccerr = conn->Send(message+"\r\n");
 	if (ccerr != 0)
 		return ccerr;
-	cout << "<< " << message;
 	return 0;
 }
 
@@ -116,7 +121,7 @@ void IRC::nick(string newnick)
 void IRC::user(string username, string host, string server, string realname)
 {
 	if (realname == "")
-		string realname = username;
+		realname = username;
 	this->send("USER "+username+" "+host+" "+server+" :"+realname);
 }
 
