@@ -8,166 +8,220 @@
 
 IRC::IRC()
 {
-	this->recv_buf = new char[4096];
+	this->ccerr = CrissCross::CC_ERR_NONE;
+	this->last_msg = 0;
+	this->last_recv = 0;
+	this->buffer = new char[4096];
+	this->msg_buf = new char[4096];
 	this->timeout = 200;
 	this->conn = new TCPSocket();
+	this->my_server = NULL;
+	this->my_nick = NULL;
+	this->my_host = NULL;
 }
 
 IRC::~IRC()
 {
 	delete this->conn;
-	*this->conn = NULL;
-	delete this->recv_buf;
-	*this->recv_buf = NULL;
+	this->conn = NULL;
+	delete [] this->buffer;
+	this->buffer = NULL;
+	delete [] this->msg_buf;
+	this->msg_buf = NULL;
 }
 
-int IRC::connect(string server,string nicks[3],u_short port,string password)
+LList<char *> IRC::split(char *str,char *delim)
 {
-	ccerr = conn->Connect(server.c_str(),port);
+	LList<char *> list;
+	char *tmp = strtok(str,delim);
+	while (tmp != NULL) {
+		list.insert(tmp);
+		tmp = strtok(NULL, delim);
+	}
+	return list;
+}
+
+int IRC::connect(char *server,char *nick,u_short port,char *pass)
+{
+	ccerr = conn->Connect(server,port);
 	if (ccerr != 0)
 		return ccerr;
 	this->my_server = server;
-	if (password != "")
-		this->send("PASS "+password);
+	if (pass != NULL) {
+		strcpy(this->msg_buf,"PASS ");
+		strcat(this->msg_buf,pass);
+		this->send(this->msg_buf);
+	}
+	this->nick(nick);
+	this->my_nick = nick;
+	this->user(nick,"0",this->my_server);
+	char *line = this->readline();
+	LList<char *> results = this->split(line," ");
 	int i = 0;
-	this->nick(nicks[i]);
-	this->my_nick = nicks[i];
-	this->user(nicks[i]+"-idlebot","localhost",this->my_server);
-	ccerr = this->receive();
-	if (ccerr != 0)
-		return ccerr;
-	char **results = this->split(this->recv_buf," ");
-	while (results[1] != "001") {
-	    if (results[1] == "PING") {
-		    this->send("PONG "+(string)results[1]);
-	    } else if (results[1] == "433" || results[1] == "432") {
-		    if (!nicks[++i].empty()) {
-			    this->nick(nicks[i]);
-			    this->my_nick = nicks[i];
-		    } else {
-			    stringstream out;
-			    out << i;
-			    this->nick(nicks[0]+out.str());
-			    this->my_nick = nicks[0]+out.str();
-		    }
+	while (!results.valid(1)) {
+		char *line = this->readline();
+		results = this->split(line," ");
+	}
+	while (!strcmp(results.get(1),"001")) {
+	    if (strcmp(results.get(1),"PING")) {
+		    strcpy(this->msg_buf,"PONG ");
+		    strcat(this->msg_buf,results.get(2));
+		    this->send(this->msg_buf);
+	    } else if (strcmp(results.get(1),"433") || strcmp(results.get(1),"432")) {
+		    stringstream out;
+		    out << ++i;
+		    this->nick(strcat(nick,out.str().c_str()));
+		    this->my_nick = strcat(nick,out.str().c_str());
 	    }
-	    this->receive();
-	    results = this->split(this->recv_buf," ");
+	    line = this->readline();
+	    results = this->split(line," ");
 	}
 
-	this->send("WHOIS "+this->my_nick);
-	this->my_host = "";
+	strcpy(this->msg_buf,"WHOIS ");
+	strcat(this->msg_buf,this->my_nick);
+	this->send(this->msg_buf);
 	do {
-		this->receive();
-		results = this->split(this->recv_buf," ");
-		if (results[1] == "311") {
-			stringstream s;
-			s << results[4] << "@" << results[5];
-			this->my_host = s.str();
-		}
-	} while (this->my_host == "");
+		line = this->readline();
+		results = this->split(line," ");
+		if (strcmp(results.get(1),"311"))
+			this->my_host = strcat(results.get(4),strcat("@",results.get(5)));
+	} while (this->my_host == NULL);
 
 	return 0;
 }
 
-char** IRC::split(char *str,char *delim)
+char *IRC::readline()
 {
-	int i = 0;
-	char **results = new char*[50];
-	char *tmp = strtok(str,delim);
-	while (tmp != NULL && i <= 50) {
-		results[i] = tmp;
-		strtok(NULL,delim);
-		i++;
+	while (1) {
+		const char *n = "\n";
+		size_t pos = strcspn(this->buffer,n) + 1;
+		if (pos != strlen(this->buffer)) {
+			char ret[++pos];
+			strncpy(ret,this->buffer,--pos);
+			ret[++pos] = '\0';
+			this->buffer = this->buffer+(--pos);
+			printf("%s",ret);
+			return ret;
+		}
+		this->read();
 	}
-	return results;
 }
 
-int IRC::receive()
+int IRC::read()
 {
 	u_int len = 4096;
-	char *buffer = new char[4096];
-	ccerr = conn->Read(buffer,&len);
-	cout << buffer << endl;
+	ccerr = conn->Read(this->buffer,&len);
 	if (ccerr != 0) {
 		return ccerr;
 	}
-
-	stringstream *s = new stringstream;
-	*s << this->recv_buf;
-	this->last_recv = s->str();
-	delete s;
-	this->recv_buf = buffer;
-
-	delete [] buffer;
+	this->last_recv = time(NULL);
 	return 0;
 }
 
-int IRC::send(string message)
+int IRC::send(char *message)
 {
-	this->last_msg = message;
-	console->WriteLine(this->last_msg);
-	ccerr = conn->Send(message+"\r\n");
+	ccerr = conn->Send(strcat(message,"\r\n"));
 	if (ccerr != 0)
 		return ccerr;
+	this->last_msg = time(NULL);
 	return 0;
 }
 
-void IRC::nick(string newnick)
+void IRC::nick(char *newnick)
 {
-	this->send("NICK "+newnick);
+	strcpy(this->msg_buf,"NICK ");
+	strcat(this->msg_buf,newnick);
+	this->send(this->msg_buf);
 }
 
-void IRC::user(string username, string host, string server, string realname)
+void IRC::user(char *username, char *host, char *server, char *realname)
 {
-	if (realname == "")
+	if (realname == NULL)
 		realname = username;
-	this->send("USER "+username+" "+host+" "+server+" :"+realname);
+	strcpy(this->msg_buf,"USER ");
+	strcat(this->msg_buf,username);
+	strcat(this->msg_buf," ");
+	strcat(this->msg_buf,host);
+	strcat(this->msg_buf," ");
+	strcat(this->msg_buf,server);
+	strcat(this->msg_buf," :");
+	strcat(this->msg_buf,realname);
+	this->send(this->msg_buf);
 }
 
-void IRC::oper(string user, string password)
+void IRC::oper(char *user, char *password)
 {
-	this->send("OPER "+user+" "+password);
+	strcpy(this->msg_buf,"OPER ");
+	strcat(this->msg_buf,user);
+	strcat(this->msg_buf," ");
+	strcat(this->msg_buf,password);
+	this->send(this->msg_buf);
 }
 
-void IRC::quit(string message)
+void IRC::quit(char *message)
 {
-	this->send("QUIT "+message);
+	strcpy(this->msg_buf,"QUIT ");
+	strcat(this->msg_buf,message);
+	this->send(this->msg_buf);
 }
 
-void IRC::join(string channel, string password)
+void IRC::join(char *channel, char *password)
 {
-	if (password != "") {
-		this->send("JOIN "+channel+" "+password);
+	if (password != NULL) {
+		strcpy(this->msg_buf,"JOIN ");
+		strcat(this->msg_buf,channel);
+		strcat(this->msg_buf," ");
+		strcat(this->msg_buf,password);
+		this->send(this->msg_buf);
 	} else {
-		this->send("JOIN "+channel);
+		strcpy(this->msg_buf,"JOIN ");
+		strcat(this->msg_buf,channel);
+		this->send(this->msg_buf);
 	}
 }
 
-void IRC::part(string channel)
+void IRC::part(char *channel)
 {
-	this->send("PART "+channel);
+	strcpy(this->msg_buf,"PART ");
+	strcat(this->msg_buf,channel);
+	this->send(this->msg_buf);
 }
 
-void IRC::msg(string channel, string message)
+void IRC::msg(char *channel, char *message)
 {
-	this->send("PRIVMSG "+channel+" :"+message);
+	strcpy(this->msg_buf,"PRIVthis->msg_buf ");
+	strcat(this->msg_buf,channel);
+	strcat(this->msg_buf," :");
+	strcat(this->msg_buf,message);
+	this->send(this->msg_buf);
 }
 
-void IRC::ping(string server, string server2)
+void IRC::ping(char *server, char *server2)
 {
-	if (server2 != "") {
-		this->send("PING "+server+" "+server2);
+	if (server2 != NULL) {
+		strcpy(this->msg_buf,"PING ");
+		strcat(this->msg_buf,server);
+		strcat(this->msg_buf," ");
+		strcat(this->msg_buf,server2);
+		this->send(this->msg_buf);
 	} else {
-		this->send("PING "+server);
+		strcpy(this->msg_buf,"PING ");
+		strcat(this->msg_buf,server);
+		this->send(this->msg_buf);
 	}
 }
 
-void IRC::pong(string daemon, string daemon2)
+void IRC::pong(char *daemon, char *daemon2)
 {
-	if (daemon2 != "") {
-		this->send("PONG "+daemon+" "+daemon2);
+	if (daemon2 != NULL) {
+		strcpy(this->msg_buf,"PONG ");
+		strcat(this->msg_buf,daemon);
+		strcat(this->msg_buf," ");
+		strcat(this->msg_buf,daemon2);
+		this->send(this->msg_buf);
 	} else {
-		this->send("PONG "+daemon);
+		strcpy(this->msg_buf,"PONG ");
+		strcat(this->msg_buf,daemon);
+		this->send(this->msg_buf);
 	}
 }

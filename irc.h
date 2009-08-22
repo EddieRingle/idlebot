@@ -15,35 +15,35 @@ public:
 	IRC();
 	virtual ~IRC();
 
-	string my_server;
-	string my_nick;
-	string my_host;
-	string last_recv;
-	char *recv_buf;
-	string last_msg;
+	char *my_server;
+	char *my_nick;
+	char *my_host;
+	time_t last_recv;
+	char *buffer;
+	time_t last_msg;
+	char *msg_buf;
 	unsigned short timeout;
 
-	int connect(string server,string nicks[3],u_short port = 6667,string password = "");
-	int receive();
-	int send(string message);
+	int connect(char *server,char *nick,u_short port = 6667,char *pass = NULL);
+	int read();
+	char *readline();
+	int send(char *message);
 	void parse();
-	char **split(char *str,char *delim);
+	LList<char *> split(char *str,char *delim);
 
-	void nick(string newnick);
-	void oper(string user,string password);
-	void quit(string message);
-	void join(string channel,string password="");
-	void part(string channel);
-	void msg(string channel,string message);
-	void ping(string server,string server2="");
-	void pong(string daemon,string daemon2="");
+	void nick(char *newnick);
+	void oper(char *user,char *password);
+	void quit(char *message);
+	void join(char *channel,char *password=NULL);
+	void part(char *channel);
+	void msg(char *channel,char *message);
+	void ping(char *server,char *server2=NULL);
+	void pong(char *daemon,char *daemon2=NULL);
 protected:
 	int ccerr;
 private:
 	TCPSocket *conn;
-
-	void user(string username,string host,string server,string realname="");
+	void user(char *username,char *host,char *server,char *realname=NULL);
 };
 
 #endif	/* _IRC_H */
-

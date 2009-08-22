@@ -7,16 +7,16 @@
 
 #include "universal_include.h"
 #include "bot.h"
-
-Console *console = new Console();
 /*
  * 
  */
 int main(int argc, char** argv)
 {
+	Console *console = new Console();
 	console->WriteLine("Starting IdleBot bot: \"Orion\"...\n\n");
 	Bot *orion = new Bot();
 	orion->run();
+	delete console;
 	return(EXIT_SUCCESS);
 }
 

@@ -25,8 +25,7 @@ Bot::~Bot()
 
 int Bot::run()
 {
-	string servers[] = {"[bot]Orion","Orion_bot"};
-	if (this->irc->connect("irc.2600.net",servers) != 0)
+	if (this->irc->connect("irc.2600.net","[bot]Orion") != 0)
 		return -1;
 	this->irc->join("#onlink");
 	return 0;
